@@ -7,7 +7,6 @@ import CustomMarker from './CustomMarker';
 
 export default class MapWithClustering extends Component {
   state = {
-    currentRegion: this.props.region,
     clusterStyle: {
       borderRadius: w(15),
       backgroundColor: this.props.clusterColor,
@@ -34,14 +33,16 @@ export default class MapWithClustering extends Component {
   }
 
   onRegionChangeComplete = (region) => {
-    const { latitude, latitudeDelta, longitude, longitudeDelta } = this.state.currentRegion;
+    const { latitude, latitudeDelta, longitude, longitudeDelta } = this.props.currentRegion;
     if (region.longitudeDelta <= 80) {
       if ((Math.abs(region.latitudeDelta - latitudeDelta) > latitudeDelta / 8)
         || (Math.abs(region.longitude - longitude) >= longitudeDelta / 5)
         || (Math.abs(region.latitude - latitude) >= latitudeDelta / 5)) {
-        this.calculateClustersForMap(region);
+        this.calculateClustersForMap();
       }
     }
+    const { onRegionChangeComplete } = this.props
+    onRegionChangeComplete && onRegionChangeComplete(region)
   };
 
   createMarkersOnMap = () => {
@@ -113,11 +114,11 @@ export default class MapWithClustering extends Component {
     return Math.min(latZoom, lngZoom, ZOOM_MAX);
   };
 
-  calculateClustersForMap = async (currentRegion = this.state.currentRegion) => {
+  calculateClustersForMap = async () => {
     let clusteredMarkers = [];
 
     if (this.props.clustering && this.superCluster) {
-      const bBox = this.calculateBBox(this.state.currentRegion);
+      const bBox = this.calculateBBox(this.props.currentRegion);
       let zoom = this.getBoundsZoomLevel(bBox, { height: h(100), width: w(100) });
       const clusters = await this.superCluster.getClusters([bBox[0], bBox[1], bBox[2], bBox[3]], zoom);
 
@@ -129,15 +130,14 @@ export default class MapWithClustering extends Component {
         clusterTextStyle={this.state.clusterTextStyle}
         marker={cluster.properties.point_count === 0 ? cluster.marker : null}
         key={JSON.stringify(cluster.geometry) + cluster.properties.cluster_id + cluster.properties.point_count}
-        onClusterPress={this.props.onClusterPress}
+        onClusterPress={this.props.onClusterPress(cluster.properties.point_count)}
       />));
     } else {
       clusteredMarkers = this.state.markers.map(marker => marker.marker);
     }
 
     this.setState({
-      clusteredMarkers,
-      currentRegion,
+      clusteredMarkers
     });
   };
 
@@ -155,8 +155,7 @@ export default class MapWithClustering extends Component {
     return (
       <MapView
         {...this.removeChildrenFromProps(this.props)}
-        ref={(ref) => { this.root = ref; }}
-        region={this.state.currentRegion}
+        ref={this.props.onRef}
         onRegionChangeComplete={this.onRegionChangeComplete}
       >
         {this.state.clusteredMarkers}
