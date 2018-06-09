@@ -16,7 +16,7 @@ export default class CustomMarker extends Component {
             longitude: this.props.geometry.coordinates[0],
             latitude: this.props.geometry.coordinates[1],
           }}
-          onPress={this.props.pointCount > 0 && this.props.onClusterPress}
+          onPress={this.props.pointCount > 0 && this.props.onClusterPress(this.props.index)}
         >
           <View style={this.props.clusterStyle}>
             <Text style={this.props.clusterTextStyle}>

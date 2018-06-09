@@ -22,6 +22,7 @@ export default class MapWithClustering extends Component {
       color: this.props.clusterTextColor,
       fontWeight: 'bold',
     },
+    currentMarkerIndex: -1
   };
 
   componentDidMount() {
@@ -114,6 +115,11 @@ export default class MapWithClustering extends Component {
     return Math.min(latZoom, lngZoom, ZOOM_MAX);
   };
 
+  onClusterPress = point_count => index => e => {
+    this.setState({ currentMarkerIndex: index })
+    this.props.onClusterPress(point_count, e.nativeEvent)
+  }
+
   calculateClustersForMap = async () => {
     let clusteredMarkers = [];
 
@@ -122,16 +128,37 @@ export default class MapWithClustering extends Component {
       let zoom = this.getBoundsZoomLevel(bBox, { height: h(100), width: w(100) });
       const clusters = await this.superCluster.getClusters([bBox[0], bBox[1], bBox[2], bBox[3]], zoom);
 
-      clusteredMarkers = clusters.map(cluster => (<CustomMarker
-        pointCount={cluster.properties.point_count}
-        clusterId={cluster.properties.cluster_id}
-        geometry={cluster.geometry}
-        clusterStyle={this.state.clusterStyle}
-        clusterTextStyle={this.state.clusterTextStyle}
-        marker={cluster.properties.point_count === 0 ? cluster.marker : null}
-        key={JSON.stringify(cluster.geometry) + cluster.properties.cluster_id + cluster.properties.point_count}
-        onClusterPress={this.props.onClusterPress(cluster.properties.point_count)}
-      />));
+      
+      clusteredMarkers = clusters.map((cluster,index) => {
+        const isCurrentMarker = this.state.currentMarkerIndex === index;
+        const clusterStyle = !isCurrentMarker || !this.props.isShowPickedCluster
+          ? this.state.clusterStyle
+          : {
+            ...this.state.clusterStyle,
+            backgroundColor: this.props.pickedClusterColor,
+            borderColor: this.props.pickedClusterBorderColor,
+            borderWidth: this.props.pickedClusterBorderWidth
+          }
+        const clusterTextStyle = !isCurrentMarker || !this.props.isShowPickedCluster
+          ? this.state.clusterTextStyle
+          : {
+            ...this.state.clusterTextStyle,
+            fontSize: this.props.pickedClusterTextSize,
+            color: this.props.pickedClusterTextColor
+          }
+        return <CustomMarker
+          index={index}
+          pointCount={cluster.properties.point_count}
+          clusterId={cluster.properties.cluster_id}
+          geometry={cluster.geometry}
+          clusterStyle={clusterStyle}
+          clusterTextStyle={clusterTextStyle}
+          marker={cluster.properties.point_count === 0 ? cluster.marker : null}
+          key={JSON.stringify(cluster.geometry) + cluster.properties.cluster_id + cluster.properties.point_count}
+          onClusterPress={this.onClusterPress(cluster.properties.point_count)}
+        />
+      }
+    );
     } else {
       clusteredMarkers = this.state.markers.map(marker => marker.marker);
     }
