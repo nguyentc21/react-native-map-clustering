@@ -6,6 +6,10 @@ import SuperCluster from 'supercluster';
 import CustomMarker from './CustomMarker';
 
 export default class MapWithClustering extends Component {
+  static defaultProps = {
+    isShowPickedCluster: false
+  }
+
   state = {
     clusterStyle: {
       borderRadius: w(15),
@@ -116,6 +120,10 @@ export default class MapWithClustering extends Component {
   };
 
   onClusterPress = point_count => index => e => {
+    if (this.state.currentMarkerIndex === index) {
+      this.setState({ currentMarkerIndex: -1 })
+      return this.props.onClusterPress(null, e.nativeEvent)
+    }
     this.setState({ currentMarkerIndex: index })
     this.props.onClusterPress(point_count, e.nativeEvent)
   }
