@@ -6,28 +6,30 @@ import SuperCluster from 'supercluster';
 import CustomMarker from './CustomMarker';
 
 export default class MapWithClustering extends Component {
-  static defaultProps = {
-    isShowPickedCluster: false
-  }
+  constructor(props) {
+    super(props);
 
-  state = {
-    clusterStyle: {
-      borderRadius: w(15),
-      backgroundColor: this.props.clusterColor,
-      borderColor: this.props.clusterBorderColor,
-      borderWidth: this.props.clusterBorderWidth,
-      width: w(15),
-      height: w(15),
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    clusterTextStyle: {
-      fontSize: this.props.clusterTextSize,
-      color: this.props.clusterTextColor,
-      fontWeight: 'bold',
-    },
-    currentMarkerIndex: -1
-  };
+    this.state = {
+      clusterStyle: {
+        borderRadius: w(15),
+        backgroundColor: this.props.clusterColor,
+        borderColor: this.props.clusterBorderColor,
+        borderWidth: this.props.clusterBorderWidth,
+        width: w(15),
+        height: w(15),
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+      clusterTextStyle: {
+        fontSize: this.props.clusterTextSize,
+        color: this.props.clusterTextColor,
+        fontWeight: 'bold',
+      },
+      currentMarkerIndex: null
+    };
+
+    this.havePickedMarker = false
+  }
 
   componentDidMount() {
     this.createMarkersOnMap();
@@ -47,7 +49,7 @@ export default class MapWithClustering extends Component {
       }
     }
     const { onRegionChangeComplete } = this.props
-    onRegionChangeComplete && onRegionChangeComplete(region)
+    onRegionChangeComplete && onRegionChangeComplete(region, this.havePickedMarker)
   };
 
   createMarkersOnMap = () => {
@@ -119,12 +121,19 @@ export default class MapWithClustering extends Component {
     return Math.min(latZoom, lngZoom, ZOOM_MAX);
   };
 
+  resetCurrentCluster = () => {
+    this.setState({ currentMarkerIndex: null })
+  }
+
   onClusterPress = point_count => index => e => {
-    if (this.state.currentMarkerIndex === index) {
-      this.setState({ currentMarkerIndex: -1 })
+    const { latitude, longitude } = e.nativeEvent.coordinate
+    const { currentMarkerIndex } = this.state
+    if (currentMarkerIndex && currentMarkerIndex.latitude == latitude && currentMarkerIndex.longitude == longitude) {
+      this.setState({ currentMarkerIndex: null })
+      this.havePickedMarker = false
       return this.props.onClusterPress(null, e.nativeEvent)
     }
-    this.setState({ currentMarkerIndex: index })
+    this.setState({ currentMarkerIndex: e.nativeEvent.coordinate })
     this.props.onClusterPress(point_count, e.nativeEvent)
   }
 
@@ -135,10 +144,17 @@ export default class MapWithClustering extends Component {
       const bBox = this.calculateBBox(this.props.currentRegion);
       let zoom = this.getBoundsZoomLevel(bBox, { height: h(100), width: w(100) });
       const clusters = await this.superCluster.getClusters([bBox[0], bBox[1], bBox[2], bBox[3]], zoom);
+      const { currentMarkerIndex } = this.state;
+      let isShowPickedCluster = false
 
-      
       clusteredMarkers = clusters.map((cluster,index) => {
-        const isCurrentMarker = this.state.currentMarkerIndex === index;
+        const [longitude, latitude] = cluster.geometry.coordinates || [];
+        const isCurrentMarker = (currentMarkerIndex && currentMarkerIndex.longitude == longitude && currentMarkerIndex.latitude == latitude);
+        if (isCurrentMarker) {
+          isShowPickedCluster = true
+          this.havePickedMarker = true
+        }
+
         const clusterStyle = !isCurrentMarker || !this.props.isShowPickedCluster
           ? this.state.clusterStyle
           : {
@@ -154,6 +170,7 @@ export default class MapWithClustering extends Component {
             fontSize: this.props.pickedClusterTextSize,
             color: this.props.pickedClusterTextColor
           }
+
         return <CustomMarker
           index={index}
           pointCount={cluster.properties.point_count}
@@ -167,6 +184,11 @@ export default class MapWithClustering extends Component {
         />
       }
     );
+
+    if (!isShowPickedCluster) {
+      this.havePickedMarker = false
+    }
+
     } else {
       clusteredMarkers = this.state.markers.map(marker => marker.marker);
     }
@@ -210,6 +232,7 @@ MapWithClustering.propTypes = {
   clusterBorderWidth: PropTypes.number,
   clusterTextSize: PropTypes.number,
   onClusterPress: PropTypes.func,
+  isShowPickedCluster: PropTypes.bool
 };
 
 const totalSize = num => (Math.sqrt((h(100) * h(100)) + (w(100) * w(100))) * num) / 100;
@@ -223,4 +246,5 @@ MapWithClustering.defaultProps = {
   clusterBorderWidth: 1,
   clusterTextSize: totalSize(2.4),
   onClusterPress: () => {},
+  isShowPickedCluster: false
 };
