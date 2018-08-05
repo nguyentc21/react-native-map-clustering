@@ -55,12 +55,13 @@ export default class MapWithClustering extends Component {
   createMarkersOnMap = () => {
     const markers = [];
     const otherChildren = [];
+    const { count } = this.props
 
     React.Children.forEach(this.props.children, (marker) => {
       if (marker.props && marker.props.coordinate) {
         markers.push({
           marker,
-          properties: { point_count: 0 },
+          properties: { point_count: 0, type: marker.props.type },
           geometry: {
             type: 'Point',
             coordinates: [
@@ -74,12 +75,31 @@ export default class MapWithClustering extends Component {
       }
     });
 
+
     if (!this.superCluster) {
-      this.superCluster = SuperCluster({
-        radius: this.props.radius,
-        maxZoom: 20,
-        minZoom: 1,
-      });
+      if (count) {
+        this.superCluster = SuperCluster({
+          radius: this.props.radius,
+          maxZoom: 20,
+          minZoom: 1,
+          initial: function() { return { count: 0}; },
+          map: function(props) {
+            if (props.type === count) {
+              return {count: 1};
+            }
+            return { count: 0}
+          },
+          reduce: function(accumulated, props) {
+            accumulated.count += props.count
+          }
+        });
+      } else {
+        this.superCluster = SuperCluster({
+          radius: this.props.radius,
+          maxZoom: 20,
+          minZoom: 1
+        });
+      }
     }
     this.superCluster.load(markers);
 
@@ -125,7 +145,7 @@ export default class MapWithClustering extends Component {
     this.setState({ currentMarkerIndex: null })
   }
 
-  onClusterPress = point_count => index => e => {
+  onClusterPress = (point_count, count) => index => e => {
     const { latitude, longitude } = e.nativeEvent.coordinate
     const { currentMarkerIndex } = this.state
     if (currentMarkerIndex && currentMarkerIndex.latitude == latitude && currentMarkerIndex.longitude == longitude) {
@@ -134,7 +154,7 @@ export default class MapWithClustering extends Component {
       return this.props.onClusterPress(null, e.nativeEvent)
     }
     this.setState({ currentMarkerIndex: e.nativeEvent.coordinate })
-    this.props.onClusterPress(point_count, e.nativeEvent)
+    this.props.onClusterPress(point_count, e.nativeEvent, count)
   }
 
   calculateClustersForMap = async () => {
@@ -180,7 +200,7 @@ export default class MapWithClustering extends Component {
           clusterTextStyle={clusterTextStyle}
           marker={cluster.properties.point_count === 0 ? cluster.marker : null}
           key={JSON.stringify(cluster.geometry) + cluster.properties.cluster_id + cluster.properties.point_count}
-          onClusterPress={this.onClusterPress(cluster.properties.point_count)}
+          onClusterPress={this.onClusterPress(cluster.properties.point_count, this.props.count && cluster.properties.count)}
         />
       }
     );
