@@ -82,15 +82,33 @@ export default class MapWithClustering extends Component {
           radius: this.props.radius,
           maxZoom: 20,
           minZoom: 1,
-          initial: function() { return { count: 0}; },
+          initial: function() {
+            let result = {}
+            count.forEach(value => {
+              result = { ...result, [value]: 0 }
+            })
+            return { count: {...result } }; 
+          },
           map: function(props) {
-            if (props.type === count) {
-              return {count: 1};
-            }
-            return { count: 0}
+            let result = {}
+            count.forEach(value => {
+              result = { ...result, [value]: 0 }
+              if(props.type && props.type !== []) {
+                props.type.forEach(t => {
+                  if (t === value) {
+                    result = { ...result, [value]: 1 }
+                  } else {
+                    result = { ...result, [value]: 0 }
+                  }
+                })
+              }
+            })
+            return { count: {...result } }; 
           },
           reduce: function(accumulated, props) {
-            accumulated.count += props.count
+            count.forEach(value => {
+              accumulated.count[value] += props.count[value]
+            })
           }
         });
       } else {
@@ -176,7 +194,8 @@ export default class MapWithClustering extends Component {
         }
         const properties = cluster.properties || {}
 
-        const isCounted = properties.count && properties.count > 0
+        const isCounted = properties.count && this.props.clusterTypeWillChangeStyle &&
+        properties.count[this.props.clusterTypeWillChangeStyle] > 0
         
         let clusterStyle = this.clusterStyle
         let clusterTextStyle = this.clusterTextStyle
