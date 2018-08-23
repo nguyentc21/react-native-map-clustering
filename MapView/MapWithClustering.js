@@ -10,25 +10,25 @@ export default class MapWithClustering extends Component {
     super(props);
 
     this.state = {
-      clusterStyle: {
-        borderRadius: w(15),
-        backgroundColor: this.props.clusterColor,
-        borderColor: this.props.clusterBorderColor,
-        borderWidth: this.props.clusterBorderWidth,
-        width: w(15),
-        height: w(15),
-        justifyContent: 'center',
-        alignItems: 'center',
-      },
-      clusterTextStyle: {
-        fontSize: this.props.clusterTextSize,
-        color: this.props.clusterTextColor,
-        fontWeight: 'bold',
-      },
       currentMarkerIndex: null
     };
 
     this.havePickedMarker = false
+    this.clusterStyle = {
+      borderRadius: w(15),
+      backgroundColor: props.clusterColor,
+      borderColor: props.clusterBorderColor,
+      borderWidth: props.clusterBorderWidth,
+      width: w(15),
+      height: w(15),
+      justifyContent: 'center',
+      alignItems: 'center',
+    }
+    this.clusterTextStyle = {
+      fontSize: props.clusterTextSize,
+      color: props.clusterTextColor,
+      fontWeight: 'bold',
+    }
   }
 
   componentDidMount() {
@@ -174,33 +174,53 @@ export default class MapWithClustering extends Component {
           isShowPickedCluster = true
           this.havePickedMarker = true
         }
+        const properties = cluster.properties || {}
 
-        const clusterStyle = !isCurrentMarker || !this.props.isShowPickedCluster
-          ? this.state.clusterStyle
-          : {
-            ...this.state.clusterStyle,
-            backgroundColor: this.props.pickedClusterColor,
-            borderColor: this.props.pickedClusterBorderColor,
-            borderWidth: this.props.pickedClusterBorderWidth
+        const isCounted = properties.count && properties.count > 0
+        
+        let clusterStyle = this.clusterStyle
+        let clusterTextStyle = this.clusterTextStyle
+
+        const currentClusterStyle = {
+          backgroundColor: this.props.pickedClusterColor,
+          borderColor: this.props.pickedClusterBorderColor,
+          borderWidth: this.props.pickedClusterBorderWidth
+        }
+        const currentClusterTextStyle = {
+          fontSize: this.props.pickedClusterTextSize,
+          color: this.props.pickedClusterTextColor
+        }
+
+        if (!isCurrentMarker) {
+          if (this.props.clusterStylesWithCounter && isCounted) {
+            clusterStyle = {
+              ...clusterStyle,
+              backgroundColor: this.props.clusterStylesWithCounter.clusterColor,
+              borderColor: this.props.clusterStylesWithCounter.clusterBorderColor,
+              borderWidth: this.props.clusterStylesWithCounter.clusterBorderWidth
+            }
+            clusterTextStyle = {
+              ...clusterTextStyle,
+              fontSize: this.props.clusterStylesWithCounter.clusterTextSize,
+              color: this.props.clusterStylesWithCounter.clusterTextColor
+            }
           }
-        const clusterTextStyle = !isCurrentMarker || !this.props.isShowPickedCluster
-          ? this.state.clusterTextStyle
-          : {
-            ...this.state.clusterTextStyle,
-            fontSize: this.props.pickedClusterTextSize,
-            color: this.props.pickedClusterTextColor
-          }
+        }
 
         return <CustomMarker
           index={index}
-          pointCount={cluster.properties.point_count}
-          clusterId={cluster.properties.cluster_id}
+          pointCount={properties.point_count}
+          clusterId={properties.cluster_id}
           geometry={cluster.geometry}
           clusterStyle={clusterStyle}
           clusterTextStyle={clusterTextStyle}
-          marker={cluster.properties.point_count === 0 ? cluster.marker : null}
-          key={JSON.stringify(cluster.geometry) + cluster.properties.cluster_id + cluster.properties.point_count}
-          onClusterPress={this.onClusterPress(cluster.properties.point_count, this.props.count && cluster.properties.count)}
+          marker={properties.point_count === 0 ? cluster.marker : null}
+          key={JSON.stringify(cluster.geometry) + properties.cluster_id + properties.point_count}
+          onClusterPress={this.onClusterPress(properties.point_count, this.props.count && properties.count)}
+          isShowPickedCluster={this.props.isShowPickedCluster}
+          isCurrentMarker={isCurrentMarker}
+          currentClusterStyle={currentClusterStyle}
+          currentClusterTextStyle={currentClusterTextStyle}
         />
       }
     );

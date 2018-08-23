@@ -9,23 +9,35 @@ export default class CustomMarker extends Component {
   }
 
   render() {
-    if (this.props.pointCount > 0) {
+    let { pointCount, geometry, isShowPickedCluster, isCurrentMarker, onClusterPress, index, marker,
+      clusterStyle, clusterTextStyle, currentClusterStyle, currentClusterTextStyle } = this.props
+    if (pointCount > 0) {
+      if (!geometry || geometry === []) {
+        return null
+      }
+      
+      if (isShowPickedCluster && isCurrentMarker) {
+        clusterTextStyle = { ...clusterTextStyle, ...currentClusterTextStyle }
+        clusterStyle = { ...clusterStyle, ...currentClusterStyle }
+        pointCount = ` ${pointCount} `
+      }
+
       return (
         <Marker
           coordinate={{
-            longitude: this.props.geometry.coordinates[0],
-            latitude: this.props.geometry.coordinates[1],
+            longitude: geometry.coordinates[0],
+            latitude: geometry.coordinates[1],
           }}
-          onPress={this.props.pointCount > 0 && this.props.onClusterPress(this.props.index)}
+          onPress={pointCount > 0 && onClusterPress(index)}
         >
-          <View style={this.props.clusterStyle}>
-            <Text style={this.props.clusterTextStyle}>
-              {this.props.pointCount}
+          <View style={clusterStyle}>
+            <Text style={clusterTextStyle}>
+              {pointCount}
             </Text>
           </View>
         </Marker>
       );
     }
-    return this.props.marker;
+    return marker;
   }
 }
