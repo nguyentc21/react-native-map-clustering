@@ -163,14 +163,21 @@ export default class MapWithClustering extends Component {
     this.setState({ currentMarkerIndex: null })
   }
 
+  fixedNumber = (num) => (Number.parseFloat(num).toFixed(5))
+
   onClusterPress = (point_count, count) => index => e => {
     const { latitude, longitude } = e.nativeEvent.coordinate
     const { currentMarkerIndex } = this.state
-    if (currentMarkerIndex && currentMarkerIndex.latitude == latitude && currentMarkerIndex.longitude == longitude) {
-      this.setState({ currentMarkerIndex: null })
-      this.havePickedMarker = false
-      return this.props.onClusterPress(null, e.nativeEvent)
+    if (currentMarkerIndex) {
+      const isSameLatitude =this.fixedNumber(currentMarkerIndex.latitude) == this.fixedNumber(latitude)
+      const isSameLongitude =this.fixedNumber(currentMarkerIndex.longitude) == this.fixedNumber(longitude)
+      if (isSameLatitude && isSameLongitude) {
+        this.setState({ currentMarkerIndex: null })
+        this.havePickedMarker = false
+        return this.props.onClusterPress(null, e.nativeEvent)
+      }
     }
+    
     this.setState({ currentMarkerIndex: e.nativeEvent.coordinate })
     this.props.onClusterPress(point_count, e.nativeEvent, count)
   }
@@ -187,7 +194,15 @@ export default class MapWithClustering extends Component {
 
       clusteredMarkers = clusters.map((cluster,index) => {
         const [longitude, latitude] = cluster.geometry.coordinates || [];
-        const isCurrentMarker = (currentMarkerIndex && currentMarkerIndex.longitude == longitude && currentMarkerIndex.latitude == latitude);
+
+        let isCurrentMarker = false
+        if (currentMarkerIndex) {
+          const isSameLatitude =this.fixedNumber(currentMarkerIndex.latitude) == this.fixedNumber(latitude)
+          const isSameLongitude =this.fixedNumber(currentMarkerIndex.longitude) == this.fixedNumber(longitude)
+      
+          isCurrentMarker = isSameLatitude && isSameLongitude
+        }
+
         if (isCurrentMarker) {
           isShowPickedCluster = true
           this.havePickedMarker = true
