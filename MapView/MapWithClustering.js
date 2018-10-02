@@ -95,10 +95,8 @@ export default class MapWithClustering extends Component {
               result = { ...result, [value]: 0 }
               if(props.type && props.type !== []) {
                 props.type.forEach(t => {
-                  if (t === value) {
+                  if (t == value) {
                     result = { ...result, [value]: 1 }
-                  } else {
-                    result = { ...result, [value]: 0 }
                   }
                 })
               }
